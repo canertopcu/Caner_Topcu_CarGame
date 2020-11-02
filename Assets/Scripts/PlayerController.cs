@@ -3,15 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class PlayerController : MonoBehaviour
+public class PlayerController : Player
 {
     public bool isStopped = false;
     public List<LiveData> dataList;
       
     public LiveData[] savedData;
     private float speed = 1;
-    private float rotationSpeed = 1;
-    GameManager gameManager;
+    private float rotationSpeed = 1; 
 
     public Transform startTransform;
     public TargetController target;
@@ -21,27 +20,15 @@ public class PlayerController : MonoBehaviour
 
     
     // Start is called before the first frame update
-    void Awake()
+    protected override void Awake()
     {
+        base.Awake();
         dataList = new List<LiveData>();
-        gameManager = GameManager.Instance;
+        
     }
+     
 
-    private void OnEnable()
-    {
-        gameManager.OnStateChange += GameManager_OnStateChange;
-    }
-
-    private void OnDisable()
-    {
-        gameManager.OnStateChange -= GameManager_OnStateChange;
-    }
-
-    private void GameManager_OnStateChange()
-    { 
-    }
-
-    public void Init(bool isReplaying)
+    public override void Init(bool isReplaying)
     {
         speed = gameManager.speed;
         rotationSpeed = gameManager.rotSpeed;
@@ -53,55 +40,63 @@ public class PlayerController : MonoBehaviour
         endMove = false;
         target.Show(!isReplaying);
         if (!isReplaying) {
-            ClearAllData();
-
+            ClearAllData(); 
         }
 
     }
     // Update is called once per frame
-    void Update()
+    protected override void Update()
     {
-
+        base.Update();
         if (gameManager.gameState == GameState.Play)
         {
             if (!isReplay)
             {
-                if (gameManager.isLeftPressed && !gameManager.isRightPressed)
-                {
-                    transform.Rotate(Vector3.up * -rotationSpeed * Time.deltaTime);
-                }
-                else if (!gameManager.isLeftPressed && gameManager.isRightPressed)
-                {
-                    transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
-                }
-                else { }
-
-
-                transform.position += transform.forward * speed * Time.deltaTime; 
-                dataList.Add(new LiveData(transform));
-
+                MovePlayer(); 
             }
             else
             {
-                if (!endMove)
-                {
-                    if (savedData.Length > playIndex)
-                    {
-                        transform.position = savedData[playIndex].position;
-                        transform.rotation = savedData[playIndex].rotation;
-
-                        playIndex++;
-                    }
-                }
+                MoveNPC();
             }
 
         }
     }
 
-    
-
-    private void OnCollisionEnter(Collision collision)
+    private void MovePlayer()
     {
+        if (gameManager.isLeftPressed && !gameManager.isRightPressed)
+        {
+            transform.Rotate(Vector3.up * -rotationSpeed * Time.deltaTime);
+        }
+        else if (!gameManager.isLeftPressed && gameManager.isRightPressed)
+        {
+            transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
+        }
+        else { }
+
+
+        transform.position += transform.forward * speed * Time.deltaTime;
+        dataList.Add(new LiveData(transform));
+    }
+
+    private void MoveNPC() {
+        if (!endMove)
+        {
+            if (savedData.Length > playIndex)
+            {
+                transform.position = savedData[playIndex].position;
+                transform.rotation = savedData[playIndex].rotation;
+
+                playIndex++;
+            }
+        }
+    }
+
+
+
+    protected override void OnCollisionEnter(Collision collision)
+    {
+        base.OnCollisionEnter(collision);
         if (gameManager.gameState == GameState.Play)
         {
             if (collision.collider.CompareTag("EndPos"))
@@ -146,23 +141,12 @@ public class PlayerController : MonoBehaviour
     public void ClearAllData() {
         if (dataList!= null)
         {
-           dataList.Clear();
+            dataList.Clear();
             savedData = dataList.ToArray();
         }
          
     }
 }
 
-[System.Serializable]
-public struct LiveData
-{
-    public Vector3 position;
-    public Quaternion rotation;
 
-    public LiveData(Transform transform)
-    {
-        position = transform.position;
-        rotation = transform.rotation;
-    }
-}
 
